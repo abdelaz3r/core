@@ -15,9 +15,10 @@ defmodule Core.Application do
       # Start the PubSub system
       {Phoenix.PubSub, name: Core.PubSub},
       # Start the Endpoint (http/https)
-      Interface.Endpoint
+      Interface.Endpoint,
       # Start a worker by calling: Core.Worker.start_link(arg)
       # {Core.Worker, arg}
+      Core.Backend.Server
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
