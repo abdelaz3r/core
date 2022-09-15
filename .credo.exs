@@ -67,7 +67,7 @@
           {Credo.Check.Readability.Semicolons, []},
           {Credo.Check.Readability.SeparateAliasRequire, []},
           {Credo.Check.Readability.SingleFunctionToBlockPipe, []},
-          {Credo.Check.Readability.SinglePipe, []},
+          {Credo.Check.Readability.SinglePipe, false},
           {Credo.Check.Readability.SpaceAfterCommas, []},
           {Credo.Check.Readability.Specs, false},
           {Credo.Check.Readability.StrictModuleLayout, []},
