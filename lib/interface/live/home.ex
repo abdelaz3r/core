@@ -13,7 +13,15 @@ defmodule Interface.Live.Home do
 
     <hr>
 
-    <p>Backend state: <%= @backend %></p>
+    <p>
+      Backend state -> <%= inspect(@backend) %>
+    </p>
+    <p>
+      <button phx-click="refresh">Refresh</button>
+    </p>
+
+    <hr>
+
     <p>
       <button phx-click="start_backend">Start Backend</button>
       <button phx-click="stop_backend">Stop Backend</button>
@@ -26,21 +34,23 @@ defmodule Interface.Live.Home do
   end
 
   def handle_params(_params, _uri, socket) do
-    {:ok, backend_state} = GenServer.call(BackendServer, :running?)
-
     socket =
       socket
       |> assign(:page_title, "Core")
-      |> assign(:backend, backend_state)
+      |> assign(:backend, GenServer.call(BackendServer, :get_state))
 
     {:noreply, socket}
   end
 
+  def handle_event("refresh", _value, socket) do
+    {:noreply, assign(socket, :backend, GenServer.call(BackendServer, :get_state))}
+  end
+
   def handle_event("start_backend", _value, socket) do
     case GenServer.call(BackendServer, :start) do
-      {:ok, backend_state} ->
+      {:ok, _backend_state} ->
         Logger.info("Started")
-        {:noreply, assign(socket, :backend, backend_state)}
+        {:noreply, assign(socket, :backend, GenServer.call(BackendServer, :get_state))}
 
       {:error, reason} ->
         Logger.error(reason)
@@ -50,9 +60,9 @@ defmodule Interface.Live.Home do
 
   def handle_event("stop_backend", _value, socket) do
     case GenServer.call(BackendServer, :stop) do
-      {:ok, backend_state} ->
+      {:ok, _backend_state} ->
         Logger.info("Stopped")
-        {:noreply, assign(socket, :backend, backend_state)}
+        {:noreply, assign(socket, :backend, GenServer.call(BackendServer, :get_state))}
 
       {:error, reason} ->
         Logger.error(reason)
