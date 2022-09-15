@@ -26,7 +26,8 @@ config :core, Interface.Endpoint,
   secret_key_base: "B1d89UnUdvdHvFopSgy8768PXHFIR4Q6G7r4mtGAKJT1HXLC2HIrnvPXbtPrirbp",
   watchers: [
     # Start the esbuild watcher by calling Esbuild.install_and_run(:default, args)
-    esbuild: {Esbuild, :install_and_run, [:default, ~w(--sourcemap=inline --watch)]}
+    esbuild: {Esbuild, :install_and_run, [:default, ~w(--sourcemap=inline --watch)]},
+    sass: {DartSass, :install_and_run, [:default, ~w(--embed-source-map --source-map-urls=absolute --watch)]}
   ]
 
 # ## SSL Support
