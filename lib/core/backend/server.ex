@@ -71,14 +71,22 @@ defmodule Core.Backend.Server do
     {:reply, {:ok, :not_running?}, state}
   end
 
+  def handle_call({:send, address, args}, _from, %{running?: true} = state) when is_list(args) do
+    message = %OSC.Message{address: address, arguments: args}
+    {:ok, encoded} = OSC.encode(message)
+
+    Socket.send(state, encoded)
+    Logger.notice("Send > #{message.address}, #{inspect(message.arguments)}")
+
+    {:reply, :ok, state}
+  end
+
   def handle_info({_port, {:data, data}}, state) do
     if String.match?(data, ~r/SuperCollider 3 server ready./) do
       Logger.notice("Supercollider started!")
 
       {:ok, state} = Socket.open(state)
       Logger.notice("Socket opened on #{inspect(state.socket)}")
-
-      send(state, "/s_new", ["piano", 117])
 
       {:noreply, state}
     else
@@ -87,24 +95,17 @@ defmodule Core.Backend.Server do
   end
 
   def handle_info({:tcp, _socket, data}, state) do
-    {:ok, message} = OSC.decode(data)
-    Logger.notice("Receive > #{inspect(message)}")
+    {:ok, %OSC.Packet{contents: message}} = OSC.decode(data)
+    Logger.notice("Receive > #{message.address}, #{inspect(message.arguments)}")
 
     {:noreply, state}
   end
 
   def handle_info({:udp, _socket, _address, _port, data}, state) do
-    {:ok, message} = OSC.decode(data)
-    Logger.notice("Receive > #{inspect(message)}")
+    {:ok, %OSC.Packet{contents: message}} = OSC.decode(data)
+    Logger.notice("Receive > #{message.address}, #{inspect(message.arguments)}")
 
     {:noreply, state}
-  end
-
-  defp send(state, address, args) do
-    message = %OSC.Message{address: address, arguments: args}
-    {:ok, encoded} = OSC.encode(message)
-    Socket.send(state, encoded)
-    Logger.notice("Send > #{inspect(message)}")
   end
 end
 

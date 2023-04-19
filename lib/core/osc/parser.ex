@@ -1,37 +1,25 @@
 defmodule OSC.Parser do
   @type t :: OSC.Bundle.t() | OSC.Message.t() | OSC.Packet.t()
 
-  @spec parse(iodata, Keyword.t()) ::
-          {:ok, t} | {:error, :invalid} | {:error, {:invalid, String.t()}}
+  @spec parse(iodata, Keyword.t()) :: {:ok, t} | {:error, :invalid} | {:error, {:invalid, String.t()}}
   def parse(iodata, options \\ []) do
     string = IO.iodata_to_binary(iodata)
 
     case values(string, options) do
-      [value] ->
-        {:ok, OSC.Decoder.decode(%OSC.Packet{contents: value}, options)}
-
-      [] ->
-        {:ok, OSC.Decoder.decode(%OSC.Packet{}, options)}
+      [value] -> {:ok, OSC.Decoder.decode(%OSC.Packet{contents: value}, options)}
+      [] -> {:ok, OSC.Decoder.decode(%OSC.Packet{}, options)}
     end
   catch
-    :invalid ->
-      {:error, :invalid}
-
-    {:invalid, token} ->
-      {:error, {:invalid, token}}
+    :invalid -> {:error, :invalid}
+    {:invalid, token} -> {:error, {:invalid, token}}
   end
 
   @spec parse!(iodata, Keyword.t()) :: t
   def parse!(iodata, options \\ []) do
     case parse(iodata, options) do
-      {:ok, value} ->
-        value
-
-      {:error, :invalid} ->
-        raise SyntaxError
-
-      {:error, {:invalid, token}} ->
-        raise SyntaxError, token: token
+      {:ok, value} -> value
+      {:error, :invalid} -> raise SyntaxError
+      {:error, {:invalid, token}} -> raise SyntaxError, token: token
     end
   end
 

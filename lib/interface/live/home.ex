@@ -10,22 +10,24 @@ defmodule Interface.Live.Home do
   def render(assigns) do
     ~H"""
     <h1>Core</h1>
+    <hr />
 
-    <hr>
+    <p>Running? -> <%= @backend.running? %></p>
+    <p>Socket -> <%= inspect(@backend.socket) %></p>
+    <p>Wrapper -> <%= inspect(@backend.wrapper) %></p>
+    <hr />
 
-    <p>
-      Backend state -> <%= inspect(@backend) %>
-    </p>
-    <p>
-      <button phx-click="refresh">Refresh</button>
-    </p>
-
-    <hr>
+    <p>Cmd -> <%= Enum.join(Core.Backend.Config.to_cmd_format(@backend.config), " ") %></p>
+    <p><button phx-click="refresh">Refresh</button></p>
+    <hr />
 
     <p>
       <button phx-click="start_backend">Start Backend</button>
       <button phx-click="stop_backend">Stop Backend</button>
     </p>
+    <hr />
+
+    <input value={@command} phx-keydown="send" phx-key="enter" />
     """
   end
 
@@ -38,6 +40,7 @@ defmodule Interface.Live.Home do
       socket
       |> assign(:page_title, "Core")
       |> assign(:backend, GenServer.call(BackendServer, :get_state))
+      |> assign(:command, "/s_new, piano, 117")
 
     {:noreply, socket}
   end
@@ -68,5 +71,22 @@ defmodule Interface.Live.Home do
         Logger.error(reason)
         {:noreply, socket}
     end
+  end
+
+  def handle_event("send", %{"value" => value}, socket) do
+    [address | args] =
+      value
+      |> String.split(",", trim: true)
+      |> Enum.map(fn part ->
+        part = String.trim(part)
+
+        case Integer.parse(part) do
+          {integer, rest} when rest == "" -> integer
+          _ -> part
+        end
+      end)
+
+    GenServer.call(BackendServer, {:send, address, args})
+    {:noreply, socket}
   end
 end

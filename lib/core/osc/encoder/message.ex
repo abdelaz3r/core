@@ -1,6 +1,5 @@
 defmodule OSC.Message do
-  defstruct address: "/",
-            arguments: []
+  defstruct address: "/", arguments: []
 
   def parse(message, options) do
     message
