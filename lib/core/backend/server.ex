@@ -6,16 +6,20 @@ defmodule Core.Backend.Server do
   alias Core.Backend.Config
   alias Core.Backend.Server
   alias Core.Socket.Socket
+  alias Interface.Endpoint
 
-  require Logger
-
-  defstruct running?: false, config: %Config{}, wrapper: nil, socket: nil
+  defstruct running?: false,
+            config: %Config{},
+            wrapper: nil,
+            socket: nil,
+            logger: "logging-server"
 
   @type t :: %Server{
           running?: boolean(),
           config: Config.t(),
           wrapper: Port.t() | nil,
-          socket: Port.t() | nil
+          socket: Port.t() | nil,
+          logger: String.t()
         }
 
   @spec start_link(any()) :: :ignore | {:error, any} | {:ok, pid}
@@ -46,8 +50,8 @@ defmodule Core.Backend.Server do
       :exit_status,
       {:env,
        [
-         {'SC_JACK_DEFAULT_OUTPUTS', String.to_charlist(state.config.jack_out)},
-         {'SC_JACK_DEFAULT_INPUTS', String.to_charlist(state.config.jack_in)}
+         {~c"SC_JACK_DEFAULT_OUTPUTS", String.to_charlist(state.config.jack_out)},
+         {~c"SC_JACK_DEFAULT_INPUTS", String.to_charlist(state.config.jack_in)}
        ]},
       args: Config.to_cmd_format(state.config)
     ]
@@ -59,34 +63,35 @@ defmodule Core.Backend.Server do
   end
 
   def handle_call(:start, _from, state) do
-    {:reply, {:error, "Supernova already running"}, state}
+    {:reply, {:error, :server_already_running}, state}
   end
 
   def handle_call(:stop, _from, %{running?: false} = state) do
-    {:reply, {:error, "Supernova not running"}, state}
+    {:reply, {:error, :server_not_running}, state}
   end
 
   def handle_call(:stop, _from, state) do
     state = %{state | running?: false, wrapper: nil, socket: nil}
-    {:reply, {:ok, :not_running?}, state}
+    {:reply, {:ok, :stopped}, state}
   end
 
   def handle_call({:send, address, args}, _from, %{running?: true} = state) when is_list(args) do
     message = %OSC.Message{address: address, arguments: args}
+
     {:ok, encoded} = OSC.encode(message)
-
     Socket.send(state, encoded)
-    Logger.notice("Send > #{message.address}, #{inspect(message.arguments)}")
 
-    {:reply, :ok, state}
+    Endpoint.broadcast(state.logger, "send", "#{message.address}, #{inspect(message.arguments)}")
+
+    {:reply, {:ok, :sent}, state}
   end
 
   def handle_info({_port, {:data, data}}, state) do
     if String.match?(data, ~r/SuperCollider 3 server ready./) do
-      Logger.notice("Supercollider started!")
+      Endpoint.broadcast(state.logger, "server", "Supercollider started!")
 
       {:ok, state} = Socket.open(state)
-      Logger.notice("Socket opened on #{inspect(state.socket)}")
+      Endpoint.broadcast(state.logger, "server", "Socket opened on #{inspect(state.socket)}")
 
       {:noreply, state}
     else
@@ -96,14 +101,14 @@ defmodule Core.Backend.Server do
 
   def handle_info({:tcp, _socket, data}, state) do
     {:ok, %OSC.Packet{contents: message}} = OSC.decode(data)
-    Logger.notice("Receive > #{message.address}, #{inspect(message.arguments)}")
+    Endpoint.broadcast(state.logger, "receive", "#{message.address}, #{inspect(message.arguments)}")
 
     {:noreply, state}
   end
 
   def handle_info({:udp, _socket, _address, _port, data}, state) do
     {:ok, %OSC.Packet{contents: message}} = OSC.decode(data)
-    Logger.notice("Receive > #{message.address}, #{inspect(message.arguments)}")
+    Endpoint.broadcast(state.logger, "receive", "#{message.address}, #{inspect(message.arguments)}")
 
     {:noreply, state}
   end
