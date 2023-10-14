@@ -38,26 +38,77 @@ defmodule Interface.Live.Home do
   @impl Phoenix.LiveView
   def render(assigns) do
     ~H"""
-    <p>Running? -> <%= @backend.running? %></p>
-    <p>Socket -> <%= inspect(@backend.socket) %></p>
-    <p>Wrapper -> <%= inspect(@backend.wrapper) %></p>
-    <hr class="border-t border-gray-700" />
+    <main class="flex flex-col h-screen bg-gray-800 text-gray-50">
+      <header class="flex items-center h-14 px-4 border-b bg-gray-900 border-gray-700">
+        <h1 class="font-bold">
+          Core
+        </h1>
+      </header>
+      <div class="grow">
+        <div class="flex h-full">
+          <div class="w-3/12 p-4 border-r bg-gray-900 border-gray-700">
+            <button
+              phx-click={if(@backend.running?, do: "stop_backend", else: "start_backend")}
+              class="w-full p-2 bg-gray-500 border border-gray-400 uppercase text-sm text-left hover:bg-gray-400"
+            >
+              <%= if @backend.running? do %>
+                Stop server
+              <% else %>
+                Start server
+              <% end %>
+            </button>
 
-    <p>Cmd -> <%= Enum.join(Core.Backend.Config.to_cmd_format(@backend.config), " ") %></p>
-    <hr class="border-t border-gray-700" />
+            <hr class="border-t border-gray-700 my-4" />
 
-    <p>
-      <button phx-click="start_backend">Start Backend</button>
-      <button phx-click="stop_backend">Stop Backend</button>
-    </p>
-    <hr class="border-t border-gray-700" />
+            <p>
+              <span class="block opacity-50">Starting command</span>
+              <%= Enum.join(Core.Backend.Config.to_cmd_format(@backend.config), " ") %>
+            </p>
+          </div>
 
-    <input value={@command} phx-keydown="send" phx-key="enter" />
-    <div>
-      <%= for event <- @events do %>
-        <p><%= event %></p>
-      <% end %>
-    </div>
+          <div class="w-9/12 p-4">
+            <input value={@command} class="w-full bg-gray-400 p-2 py-1.5 border border-gray-400" phx-keydown="send" phx-key="enter" />
+
+            <hr class="border-t border-gray-700 my-4" />
+
+            <div>
+              <%= for %{time: time, event: event, payload: payload} <- @events do %>
+                <div class="flex gap-2 items-center">
+                  <span class="opacity-50 text-sm">
+                    <%= time %>
+                  </span>
+                  <span :if={event === "server"} class="">_</span>
+                  <span :if={event === "send"} class="">»</span>
+                  <span :if={event === "receive"} class="">«</span>
+                  <span class="">
+                    <%= payload %>
+                  </span>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      </div>
+      <footer class="relative flex items-center px-4 h-14 border-t bg-gray-900 border-gray-700">
+        <div class="flex items-center gap-4 text-sm">
+          <div class={[
+            "w-3 h-3 rounded-full",
+            @backend.running? == true && "bg-green",
+            @backend.running? == false && "bg-gray-500",
+            @backend.running? == :undefined && "bg-peach"
+          ]}>
+          </div>
+          <div :if={@backend.socket} class="flex">
+            <span class="opacity-50">Socket</span>
+            <%= inspect(@backend.socket) |> String.replace_leading("#Port", "") %>
+          </div>
+        </div>
+
+        <div class="absolute flex gap-3 top-3 right-3 bottom-3">
+          <.flash_group flash={@flash} />
+        </div>
+      </footer>
+    </main>
     """
   end
 
@@ -103,15 +154,8 @@ defmodule Interface.Live.Home do
 
   @impl Phoenix.LiveView
   def handle_info(%{topic: topic, event: event, payload: payload}, socket) when topic == socket.assigns.topic do
-    symbol =
-      case event do
-        "server" -> "_"
-        "send" -> ">"
-        "receive" -> "<"
-      end
-
     time = DateTime.utc_now() |> DateTime.to_time()
-    message = "#{time} #{symbol} #{payload}"
+    message = %{time: time, event: event, payload: payload}
 
     socket =
       socket
