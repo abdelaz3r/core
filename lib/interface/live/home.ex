@@ -47,7 +47,6 @@ defmodule Interface.Live.Home do
     <hr />
 
     <p>Cmd -> <%= Enum.join(Core.Backend.Config.to_cmd_format(@backend.config), " ") %></p>
-    <p><button phx-click="refresh">Refresh</button></p>
     <hr />
 
     <p>
@@ -57,8 +56,6 @@ defmodule Interface.Live.Home do
     <hr />
 
     <input value={@command} phx-keydown="send" phx-key="enter" />
-    <hr />
-
     <div>
       <%= for event <- @events do %>
         <p><%= event %></p>
@@ -68,14 +65,9 @@ defmodule Interface.Live.Home do
   end
 
   @impl Phoenix.LiveView
-  def handle_event("refresh", _value, socket) do
-    {:noreply, assign(socket, :backend, GenServer.call(BackendServer, :get_state))}
-  end
-
-  @impl Phoenix.LiveView
   def handle_event("start_backend", _value, socket) do
     case GenServer.call(BackendServer, :start) do
-      {:ok, :running} ->
+      {:ok, :starting} ->
         {:noreply, assign(socket, :backend, GenServer.call(BackendServer, :get_state))}
 
       {:error, _reason} ->
@@ -86,7 +78,7 @@ defmodule Interface.Live.Home do
   @impl Phoenix.LiveView
   def handle_event("stop_backend", _value, socket) do
     case GenServer.call(BackendServer, :stop) do
-      {:ok, :stopped} ->
+      {:ok, :stopping} ->
         {:noreply, assign(socket, :backend, GenServer.call(BackendServer, :get_state))}
 
       {:error, _reason} ->
@@ -108,7 +100,7 @@ defmodule Interface.Live.Home do
         end
       end)
 
-    {:ok, :sent} = GenServer.call(BackendServer, {:send, address, args})
+    GenServer.call(BackendServer, {:send, address, args})
     {:noreply, socket}
   end
 
@@ -124,6 +116,11 @@ defmodule Interface.Live.Home do
     time = DateTime.utc_now() |> DateTime.to_time()
     message = "#{time} #{symbol} #{payload}"
 
-    {:noreply, assign(socket, :events, [message | socket.assigns.events])}
+    socket =
+      socket
+      |> assign(:backend, GenServer.call(BackendServer, :get_state))
+      |> assign(:events, [message | socket.assigns.events])
+
+    {:noreply, socket}
   end
 end
