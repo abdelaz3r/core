@@ -28,8 +28,7 @@ defmodule Interface.CoreComponents do
   """
   attr :id, :string, default: "flash", doc: "the optional id of flash container"
   attr :flash, :map, default: %{}, doc: "the map of flash messages to display"
-  attr :title, :string, default: nil
-  attr :kind, :atom, values: [:info, :error], doc: "used for styling and flash lookup"
+  attr :kind, :atom, values: [:info, :error, :neutral], doc: "used for styling and flash lookup"
   attr :rest, :global, doc: "the arbitrary HTML attributes to add to the flash container"
 
   slot :inner_block, doc: "the optional inner block that renders the flash message"
@@ -42,18 +41,26 @@ defmodule Interface.CoreComponents do
       phx-click={JS.push("lv:clear-flash", value: %{key: @kind}) |> hide("##{@id}")}
       role="alert"
       class={[
-        "fixed top-2 right-2 w-80 sm:w-96 z-50 rounded-lg p-3 ring-1",
-        @kind == :info && "bg-emerald-50 text-emerald-800 ring-emerald-500 fill-cyan-900",
-        @kind == :error && "bg-rose-50 text-rose-900 shadow-md ring-rose-500 fill-rose-900"
+        "relative flex items-center p-2 pr-5 bg-gray-800 text-sm",
+        @kind == :neutral && "border border-gray-700",
+        @kind == :error && "border border-red text-red",
+        @kind == :info && "border border-green text-green"
       ]}
       {@rest}
     >
-      <p :if={@title} class="flex items-center gap-1.5 text-sm font-semibold leading-6">
-        <%= @title %>
+      <p>
+        <%= msg %>
       </p>
-      <p class="mt-2 text-sm leading-5"><%= msg %></p>
-      <button type="button" class="group absolute top-1 right-1 p-2" aria-label="close">
-        Close
+      <button
+        type="button"
+        class={[
+          "absolute cursor-pointer top-0 right-0 w-3 h-3",
+          @kind == :neutral && "bg-gray-700",
+          @kind == :error && "bg-red",
+          @kind == :info && "bg-green"
+        ]}
+        aria-label="close"
+      >
       </button>
     </div>
     """
@@ -70,27 +77,12 @@ defmodule Interface.CoreComponents do
 
   def flash_group(assigns) do
     ~H"""
-    <.flash kind={:info} title="Success!" flash={@flash} />
-    <.flash kind={:error} title="Error!" flash={@flash} />
-    <.flash
-      id="client-error"
-      kind={:error}
-      title="We can't find the internet"
-      phx-disconnected={show(".phx-client-error #client-error")}
-      phx-connected={hide("#client-error")}
-      hidden
-    >
+    <.flash kind={:info} flash={@flash} />
+    <.flash kind={:error} flash={@flash} />
+    <.flash id="client-error" kind={:neutral} phx-disconnected={show(".phx-client-error #client-error")} phx-connected={hide("#client-error")} hidden>
       Attempting to reconnect
     </.flash>
-
-    <.flash
-      id="server-error"
-      kind={:error}
-      title="Something went wrong!"
-      phx-disconnected={show(".phx-server-error #server-error")}
-      phx-connected={hide("#server-error")}
-      hidden
-    >
+    <.flash id="server-error" kind={:neutral} phx-disconnected={show(".phx-server-error #server-error")} phx-connected={hide("#server-error")} hidden>
       Hang in there while we get back on track
     </.flash>
     """

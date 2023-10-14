@@ -38,22 +38,19 @@ defmodule Interface.Live.Home do
   @impl Phoenix.LiveView
   def render(assigns) do
     ~H"""
-    <h1>Core</h1>
-    <hr />
-
     <p>Running? -> <%= @backend.running? %></p>
     <p>Socket -> <%= inspect(@backend.socket) %></p>
     <p>Wrapper -> <%= inspect(@backend.wrapper) %></p>
-    <hr />
+    <hr class="border-t border-gray-700" />
 
     <p>Cmd -> <%= Enum.join(Core.Backend.Config.to_cmd_format(@backend.config), " ") %></p>
-    <hr />
+    <hr class="border-t border-gray-700" />
 
     <p>
       <button phx-click="start_backend">Start Backend</button>
       <button phx-click="stop_backend">Stop Backend</button>
     </p>
-    <hr />
+    <hr class="border-t border-gray-700" />
 
     <input value={@command} phx-keydown="send" phx-key="enter" />
     <div>
