@@ -17,14 +17,11 @@ config :core, Core.Repo,
 # you can enable the server option below.
 config :core, Interface.Endpoint,
   http: [ip: {127, 0, 0, 1}, port: 4002],
-  secret_key_base: "Cghv77Zoj7OPvw+IKvLVJZ/v9FH4VcSBn/T5qKG6+5nKNKYUaam/GHvYLX4jki5j",
+  secret_key_base: "ZhoIVK9w+4pb9WjzDf96oh6byhaZ/IcfQdr/WTfI8a4ycan6iKPNlcAE7siwnPFi",
   server: false
 
-# In test we don't send emails.
-config :core, Core.Mailer, adapter: Swoosh.Adapters.Test
-
 # Print only warnings and errors during test
-config :logger, level: :warn
+config :logger, level: :warning
 
 # Initialize plugs at runtime for faster test compilation
 config :phoenix, :plug_init_mode, :runtime

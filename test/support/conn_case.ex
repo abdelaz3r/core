@@ -19,15 +19,15 @@ defmodule Interface.ConnCase do
 
   using do
     quote do
+      # The default endpoint for testing
+      @endpoint Interface.Endpoint
+
+      use Interface, :verified_routes
+
       # Import conveniences for testing with connections
       import Plug.Conn
       import Phoenix.ConnTest
       import Interface.ConnCase
-
-      alias Interface.Router.Helpers, as: Routes
-
-      # The default endpoint for testing
-      @endpoint Interface.Endpoint
     end
   end
 
