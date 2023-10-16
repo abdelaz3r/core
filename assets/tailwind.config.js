@@ -28,6 +28,7 @@ module.exports = {
         700: 'rgb(36, 39, 58)',
         800: 'rgb(30, 32, 48)',
         900: 'rgb(24, 25, 38)',
+        950: 'rgb(16, 16, 26)',
       },
       pink: '#f5bde6',
       mauve: '#c6a0f6',
@@ -42,8 +43,18 @@ module.exports = {
       lavender: '#b7bdf8',
     },
     fontFamily: {
-      sans: ['Graphik', 'sans-serif'],
-      serif: ['Merriweather', 'serif'],
+      mono: ['Menlo', 'Monaco', 'Courier New', 'monospace'],
+    },
+    fontSize: {
+      xs: '0.625rem',
+      sm: '0.75rem',
+      base: '0.875rem',
+      xl: '1rem',
+      '2xl': '1.125rem',
+      '3xl': '1.25rem',
+      '4xl': '1.5rem',
+      '5xl': '1.75rem',
+      '6xl': '2rem'
     },
     extend: {
       colors: {
