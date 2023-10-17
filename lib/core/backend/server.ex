@@ -87,13 +87,17 @@ defmodule Core.Backend.Server do
     {:ok, encoded} = OSC.encode(message)
     Socket.send(state, encoded)
 
-    Endpoint.broadcast(state.logger, "send", "#{message.address}, #{inspect(message.arguments)}")
+    Endpoint.broadcast(state.logger, "send", %{prefix: message.address, payload: inspect(message.arguments)})
 
     {:reply, {:ok, :sent}, state}
   end
 
   def handle_call({:send, _address, _args}, _from, state) do
-    Endpoint.broadcast(state.logger, "send", "[error] Supercollider not started or starting")
+    Endpoint.broadcast(state.logger, "send", %{
+      prefix: "/error",
+      prefix_color: "text-red",
+      payload: "Supercollider not started or starting"
+    })
 
     {:reply, {:error, :not_sent}, state}
   end
@@ -111,24 +115,28 @@ defmodule Core.Backend.Server do
     end
   end
 
-  def handle_info({:tcp_closed, _socket}, state) do
-    Endpoint.broadcast(state.logger, "server", "Supercollider stopped")
-
-    {:noreply, %{state | running?: false, wrapper: nil, socket: nil}}
-  end
-
   def handle_info({:tcp, _socket, data}, state) do
     {:ok, %OSC.Packet{contents: message}} = OSC.decode(data)
-    Endpoint.broadcast(state.logger, "receive", "#{message.address}, #{inspect(message.arguments)}")
+    Endpoint.broadcast(state.logger, "receive", %{prefix: message.address, payload: inspect(message.arguments)})
 
     {:noreply, state}
   end
 
   def handle_info({:udp, _socket, _address, _port, data}, state) do
     {:ok, %OSC.Packet{contents: message}} = OSC.decode(data)
-    Endpoint.broadcast(state.logger, "receive", "#{message.address}, #{inspect(message.arguments)}")
+    Endpoint.broadcast(state.logger, "receive", %{prefix: message.address, payload: inspect(message.arguments)})
 
     {:noreply, state}
+  end
+
+  def handle_info({:tcp_closed, _socket}, state) do
+    Endpoint.broadcast(state.logger, "server", "Supercollider stopped")
+    {:noreply, %{state | running?: false, wrapper: nil, socket: nil}}
+  end
+
+  def handle_info({_port, {:exit_status, 0}}, state) do
+    Endpoint.broadcast(state.logger, "server", "Wrapper killed")
+    {:noreply, %{state | running?: false, wrapper: nil, socket: nil}}
   end
 end
 

@@ -66,27 +66,29 @@ defmodule Interface.Live.Home do
           </p>
         </div>
 
-        <div class="grow p-4 overflow-x-scroll">
-          <input
-            value={@command}
-            class="w-full bg-gray-400 p-2 py-1.5 border border-gray-400 !outline-none focus:bg-gray-300 focus:border-gray-200"
-            phx-keydown="send"
-            phx-key="enter"
-          />
-
-          <hr class="border-t border-gray-700 my-4" />
-
-          <div>
-            <%= for %{time: time, event: event, payload: payload} <- @events do %>
-              <div class="flex gap-2 items-center">
+        <div class="flex flex-1 flex-col w-full">
+          <div class="p-4 h-18 flex-1 border-b border-gray-700">
+            <input
+              value={@command}
+              class="w-full bg-gray-400 p-2 py-1.5 border border-gray-400 !outline-none focus:bg-gray-300 focus:border-gray-200"
+              phx-keydown="send"
+              phx-key="enter"
+            />
+          </div>
+          <div class="h-full p-4 grow overflow-y-scroll">
+            <%= for event <- @events do %>
+              <div class="flex gap-2 items-center hover:bg-gray-700">
                 <span class="opacity-50 text-sm">
-                  <%= time %>
+                  <%= event.time %>
                 </span>
-                <span :if={event === "server"} class="">_</span>
-                <span :if={event === "send"} class="">»</span>
-                <span :if={event === "receive"} class="">«</span>
+                <span :if={event.type === "server"} class="">_</span>
+                <span :if={event.type === "send"} class="">»</span>
+                <span :if={event.type === "receive"} class="">«</span>
+                <span :if={event.prefix} class={event.prefix_color}>
+                  <%= event.prefix %>
+                </span>
                 <span class="">
-                  <%= payload %>
+                  <%= event.message %>
                 </span>
               </div>
             <% end %>
@@ -158,15 +160,29 @@ defmodule Interface.Live.Home do
   end
 
   @impl Phoenix.LiveView
-  def handle_info(%{topic: topic, event: event, payload: payload}, socket) when topic == socket.assigns.topic do
+  def handle_info(
+        %{topic: topic, event: type, payload: %{prefix: prefix, prefix_color: prefix_color, payload: payload}},
+        socket
+      )
+      when topic == socket.assigns.topic do
+    {:noreply, log_and_refresh(socket, type, payload, prefix, prefix_color)}
+  end
+
+  def handle_info(%{topic: topic, event: type, payload: %{prefix: prefix, payload: payload}}, socket)
+      when topic == socket.assigns.topic do
+    {:noreply, log_and_refresh(socket, type, payload, prefix, "text-green")}
+  end
+
+  def handle_info(%{topic: topic, event: type, payload: payload}, socket) when topic == socket.assigns.topic do
+    {:noreply, log_and_refresh(socket, type, payload, nil, nil)}
+  end
+
+  defp log_and_refresh(socket, type, message, prefix, prefix_color) do
     time = DateTime.utc_now() |> DateTime.to_time()
-    message = %{time: time, event: event, payload: payload}
+    event = %{time: time, type: type, message: message, prefix: prefix, prefix_color: prefix_color}
 
-    socket =
-      socket
-      |> assign(:backend, GenServer.call(BackendServer, :get_state))
-      |> assign(:events, [message | socket.assigns.events])
-
-    {:noreply, socket}
+    socket
+    |> assign(:backend, GenServer.call(BackendServer, :get_state))
+    |> assign(:events, [event | socket.assigns.events])
   end
 end
