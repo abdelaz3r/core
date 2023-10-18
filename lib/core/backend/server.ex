@@ -87,7 +87,10 @@ defmodule Core.Backend.Server do
     {:ok, encoded} = OSC.encode(message)
     Socket.send(state, encoded)
 
-    Endpoint.broadcast(state.logger, "send", %{prefix: message.address, payload: inspect(message.arguments)})
+    Endpoint.broadcast(state.logger, "send", %{
+      prefix: message.address,
+      payload: message.arguments |> Enum.join(", ")
+    })
 
     {:reply, {:ok, :sent}, state}
   end
@@ -117,14 +120,22 @@ defmodule Core.Backend.Server do
 
   def handle_info({:tcp, _socket, data}, state) do
     {:ok, %OSC.Packet{contents: message}} = OSC.decode(data)
-    Endpoint.broadcast(state.logger, "receive", %{prefix: message.address, payload: inspect(message.arguments)})
+
+    Endpoint.broadcast(state.logger, "receive", %{
+      prefix: message.address,
+      payload: message.arguments |> Enum.join(", ")
+    })
 
     {:noreply, state}
   end
 
   def handle_info({:udp, _socket, _address, _port, data}, state) do
     {:ok, %OSC.Packet{contents: message}} = OSC.decode(data)
-    Endpoint.broadcast(state.logger, "receive", %{prefix: message.address, payload: inspect(message.arguments)})
+
+    Endpoint.broadcast(state.logger, "receive", %{
+      prefix: message.address,
+      payload: message.arguments |> Enum.join(", ")
+    })
 
     {:noreply, state}
   end
@@ -139,5 +150,3 @@ defmodule Core.Backend.Server do
     {:noreply, %{state | running?: false, wrapper: nil, socket: nil}}
   end
 end
-
-# { [SinOsc.ar(440, 0, 0.2), SinOsc.ar(442, 0, 0.2)] }.play;

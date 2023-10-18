@@ -19,6 +19,19 @@ defmodule Interface.Live.Home do
       socket
       |> assign(page_title: "Core")
       |> assign(topic: topic)
+      |> assign(
+        commands: [
+          {"Get version", "/version"},
+          {"Get server status", "/status"},
+          {"Set notify", "/notify, 1"},
+          {"Load sonicpi synth directory",
+           "/d_loadDir, /Users/abdelaz3r/Documents/dev/sonic-pi/etc/synthdefs/compiled/"},
+          {"Load test synth", "/d_load, /Users/abdelaz3r/Documents/dev/test.scsyndef"},
+          {"Create test synth", "/s_new, tutorial-SinOsc-stereo, 100, 1, 0"},
+          {"Free test synth", "/n_free, 100"},
+          {"Quit server", "/quit"}
+        ]
+      )
 
     {:ok, socket}
   end
@@ -64,6 +77,19 @@ defmodule Interface.Live.Home do
             <span class="block opacity-50">Starting command</span>
             <%= Enum.join(Core.Backend.Config.to_cmd_format(@backend.config), " ") %>
           </p>
+
+          <div :if={@backend.running? === true}>
+            <hr class="border-t border-gray-700 my-4" />
+
+            <button
+              :for={{label, command} <- @commands}
+              phx-click="set_command"
+              phx-value-command={command}
+              class="w-full p-2 mb-2 bg-gray-500 border border-gray-400 uppercase text-sm text-left hover:bg-gray-400"
+            >
+              <%= label %>
+            </button>
+          </div>
         </div>
 
         <div class="flex flex-1 flex-col w-full">
@@ -139,6 +165,11 @@ defmodule Interface.Live.Home do
       {:error, _reason} ->
         {:noreply, socket}
     end
+  end
+
+  @impl Phoenix.LiveView
+  def handle_event("set_command", %{"command" => command}, socket) do
+    {:noreply, assign(socket, :command, command)}
   end
 
   @impl Phoenix.LiveView
