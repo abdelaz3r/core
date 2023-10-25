@@ -43,6 +43,8 @@ defmodule Interface.Live.Home do
       |> assign(:page_title, "Core")
       |> assign(:backend, GenServer.call(BackendServer, :get_state))
       |> assign(:command, "/s_new, piano, 117")
+      |> assign(:async_time, 1)
+      |> assign(:async_command, "")
       |> assign(:events, [])
 
     {:noreply, socket}
@@ -101,6 +103,27 @@ defmodule Interface.Live.Home do
               phx-key="enter"
             />
           </div>
+          <.form
+            :let={f}
+            for={%{"time" => @async_time, "command" => @async_command}}
+            as={:send_async}
+            phx-submit="send_async"
+            class="flex gap-4 p-4 h-18 flex-1 border-b border-gray-700"
+          >
+            <input
+              id={f["time"].id}
+              name={f["time"].name}
+              value={f["time"].value}
+              class="w-20 bg-gray-400 p-2 py-1.5 border border-gray-400 !outline-none focus:bg-gray-300 focus:border-gray-200"
+            />
+            <input
+              id={f["command"].id}
+              name={f["command"].name}
+              value={f["command"].value}
+              class="w-full bg-gray-400 p-2 py-1.5 border border-gray-400 !outline-none focus:bg-gray-300 focus:border-gray-200"
+            />
+            <button class="hidden"></button>
+          </.form>
           <div class="h-full p-4 grow overflow-y-scroll">
             <%= for event <- @events do %>
               <div class="flex gap-2 items-center hover:bg-gray-700">
@@ -173,7 +196,7 @@ defmodule Interface.Live.Home do
   end
 
   @impl Phoenix.LiveView
-  def handle_event("send", %{"value" => value}, socket) do
+  def handle_event("send", %{"value" => value}, socket) when value !== "" do
     [address | args] =
       value
       |> String.split(",", trim: true)
@@ -186,7 +209,36 @@ defmodule Interface.Live.Home do
         end
       end)
 
-    GenServer.call(BackendServer, {:send, address, args})
+    GenServer.call(BackendServer, {:send, {address, args}})
+    {:noreply, socket}
+  end
+
+  def handle_event("send", _payload, socket) do
+    {:noreply, socket}
+  end
+
+  @impl Phoenix.LiveView
+  def handle_event("send_async", %{"send_async" => %{"time" => time, "command" => value}}, socket)
+      when value !== "" and time !== "" do
+    time = String.to_integer(time)
+
+    [address | args] =
+      value
+      |> String.split(",", trim: true)
+      |> Enum.map(fn part ->
+        part = String.trim(part)
+
+        case Integer.parse(part) do
+          {integer, rest} when rest == "" -> integer
+          _ -> part
+        end
+      end)
+
+    GenServer.call(BackendServer, {:send, {time, address, args}})
+    {:noreply, socket}
+  end
+
+  def handle_event("send_async", _payload, socket) do
     {:noreply, socket}
   end
 

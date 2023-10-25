@@ -8,6 +8,8 @@ defmodule Core.Backend.Server do
   alias Core.Socket.Socket
   alias Interface.Endpoint
 
+  @unix_epoch 2_208_988_800
+
   defstruct running?: false,
             config: %Config{},
             wrapper: nil,
@@ -81,7 +83,7 @@ defmodule Core.Backend.Server do
     {:reply, {:error, :server_not_running}, state}
   end
 
-  def handle_call({:send, address, args}, _from, %{running?: true} = state) when is_list(args) do
+  def handle_call({:send, {address, args}}, _from, %{running?: true} = state) when is_list(args) do
     message = %OSC.Message{address: address, arguments: args}
 
     {:ok, encoded} = OSC.encode(message)
@@ -95,7 +97,23 @@ defmodule Core.Backend.Server do
     {:reply, {:ok, :sent}, state}
   end
 
-  def handle_call({:send, _address, _args}, _from, state) do
+  def handle_call({:send, {run_after, address, args}}, _from, %{running?: true} = state) when is_list(args) do
+    seconds = System.os_time(:second) + @unix_epoch + run_after
+    timetag = %OSC.TimeTag{seconds: seconds, fraction: 0}
+    message = %OSC.Message{address: address, arguments: args}
+
+    {:ok, encoded} = OSC.encode(%OSC.Bundle{time: timetag, elements: [message]})
+    Socket.send(state, encoded)
+
+    Endpoint.broadcast(state.logger, "send", %{
+      prefix: message.address,
+      payload: (["[send in #{run_after} | real:#{seconds}]"] ++ message.arguments) |> Enum.join(", ")
+    })
+
+    {:reply, {:ok, :sent}, state}
+  end
+
+  def handle_call({:send, _message}, _from, state) do
     Endpoint.broadcast(state.logger, "send", %{
       prefix: "/error",
       prefix_color: "text-red",
