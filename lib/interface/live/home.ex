@@ -43,7 +43,7 @@ defmodule Interface.Live.Home do
       |> assign(:page_title, "Core")
       |> assign(:backend, GenServer.call(BackendServer, :get_state))
       |> assign(:command, "/s_new, piano, 117")
-      |> assign(:async_time, 1)
+      |> assign(:async_time, "1")
       |> assign(:async_command, "")
       |> assign(:events, [])
 
@@ -95,12 +95,13 @@ defmodule Interface.Live.Home do
         </div>
 
         <div class="flex flex-1 flex-col w-full">
-          <div class="p-4 h-18 flex-1 border-b border-gray-700">
+          <div class="h-18 flex-1 border-b border-gray-600">
             <input
               value={@command}
-              class="w-full bg-gray-400 p-2 py-1.5 border border-gray-400 !outline-none focus:bg-gray-300 focus:border-gray-200"
+              class="w-full p-4 border-none !outline-none bg-gray-700 hover:bg-gray-700/50 focus:bg-gray-700/50"
               phx-keydown="send"
               phx-key="enter"
+              placeholder="sync command"
             />
           </div>
           <.form
@@ -108,19 +109,21 @@ defmodule Interface.Live.Home do
             for={%{"time" => @async_time, "command" => @async_command}}
             as={:send_async}
             phx-submit="send_async"
-            class="flex gap-4 p-4 h-18 flex-1 border-b border-gray-700"
+            class="flex h-18 flex-1 border-b border-gray-600"
           >
             <input
               id={f["time"].id}
               name={f["time"].name}
               value={f["time"].value}
-              class="w-20 bg-gray-400 p-2 py-1.5 border border-gray-400 !outline-none focus:bg-gray-300 focus:border-gray-200"
+              class="w-28 p-4 border-r border-gray-600 !outline-none bg-gray-700 hover:bg-gray-700/50 focus:bg-gray-700/50"
+              placeholder="delay"
             />
             <input
               id={f["command"].id}
               name={f["command"].name}
               value={f["command"].value}
-              class="w-full bg-gray-400 p-2 py-1.5 border border-gray-400 !outline-none focus:bg-gray-300 focus:border-gray-200"
+              class="w-full p-4 border-none !outline-none bg-gray-700 hover:bg-gray-700/50 focus:bg-gray-700/50"
+              placeholder="async command"
             />
             <button class="hidden"></button>
           </.form>
@@ -210,7 +213,7 @@ defmodule Interface.Live.Home do
       end)
 
     GenServer.call(BackendServer, {:send, {address, args}})
-    {:noreply, socket}
+    {:noreply, assign(socket, :command, value)}
   end
 
   def handle_event("send", _payload, socket) do
@@ -235,6 +238,12 @@ defmodule Interface.Live.Home do
       end)
 
     GenServer.call(BackendServer, {:send, {time, address, args}})
+
+    socket =
+      socket
+      |> assign(:async_time, time)
+      |> assign(:async_command, value)
+
     {:noreply, socket}
   end
 
