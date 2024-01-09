@@ -5,6 +5,8 @@ defmodule Interface.Live.Home do
 
   use Interface, :live_view
 
+  alias SuperCollider
+
   require Logger
 
   @impl Phoenix.LiveView
@@ -173,13 +175,25 @@ defmodule Interface.Live.Home do
 
   @impl Phoenix.LiveView
   def handle_event("start_backend", _value, socket) do
-    case GenServer.call(BackendServer, :start) do
-      {:ok, :starting} ->
-        {:noreply, assign(socket, :backend, GenServer.call(BackendServer, :get_state))}
+    IO.inspect("starting server")
+    server = SuperCollider.start()
+    IO.inspect(server)
+    :timer.sleep(2000)
 
-      {:error, _reason} ->
-        {:noreply, socket}
-    end
+    IO.inspect(SuperCollider.command(:status))
+    :timer.sleep(2000)
+    IO.inspect(SuperCollider.response()[:status])
+    :timer.sleep(2000)
+
+    {:noreply, socket}
+
+    # case GenServer.call(BackendServer, :start, 20_000) do
+    #   {:ok, :starting} ->
+    #     {:noreply, assign(socket, :backend, GenServer.call(BackendServer, :get_state))}
+
+    #   {:error, _reason} ->
+    #     {:noreply, socket}
+    # end
   end
 
   @impl Phoenix.LiveView
