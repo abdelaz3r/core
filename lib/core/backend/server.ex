@@ -84,10 +84,8 @@ defmodule Core.Backend.Server do
   end
 
   def handle_call({:send, {address, args}}, _from, %{running?: true} = state) when is_list(args) do
-    message = %OSC.Message{address: address, arguments: args}
-
-    {:ok, encoded} = OSC.encode(message)
-    Socket.send(state, encoded)
+    message = %OSCx.Message{address: address, arguments: args}
+    Socket.send(state, OSCx.encode(message))
 
     Endpoint.broadcast(state.logger, "send", %{
       prefix: message.address,
@@ -99,11 +97,10 @@ defmodule Core.Backend.Server do
 
   def handle_call({:send, {run_after, address, args}}, _from, %{running?: true} = state) when is_list(args) do
     seconds = System.os_time(:second) + @unix_epoch + run_after
-    timetag = %OSC.TimeTag{seconds: seconds, fraction: 0}
-    message = %OSC.Message{address: address, arguments: args}
+    message = %OSCx.Message{address: address, arguments: args}
+    bundle = %OSCx.Bundle{time: %{seconds: seconds, fraction: 0}, elements: [message]}
 
-    {:ok, encoded} = OSC.encode(%OSC.Bundle{time: timetag, elements: [message]})
-    Socket.send(state, encoded)
+    Socket.send(state, OSCx.encode(bundle))
 
     Endpoint.broadcast(state.logger, "send", %{
       prefix: message.address,
@@ -137,23 +134,15 @@ defmodule Core.Backend.Server do
   end
 
   def handle_info({:tcp, _socket, data}, state) do
-    {:ok, %OSC.Packet{contents: message}} = OSC.decode(data)
-
-    Endpoint.broadcast(state.logger, "receive", %{
-      prefix: message.address,
-      payload: message.arguments |> Enum.join(", ")
-    })
+    %OSCx.Message{address: address, arguments: arguments} = OSCx.decode(data)
+    Endpoint.broadcast(state.logger, "receive", %{prefix: address, payload: arguments |> Enum.join(", ")})
 
     {:noreply, state}
   end
 
   def handle_info({:udp, _socket, _address, _port, data}, state) do
-    {:ok, %OSC.Packet{contents: message}} = OSC.decode(data)
-
-    Endpoint.broadcast(state.logger, "receive", %{
-      prefix: message.address,
-      payload: message.arguments |> Enum.join(", ")
-    })
+    %OSCx.Message{address: address, arguments: arguments} = OSCx.decode(data)
+    Endpoint.broadcast(state.logger, "receive", %{prefix: address, payload: arguments |> Enum.join(", ")})
 
     {:noreply, state}
   end
