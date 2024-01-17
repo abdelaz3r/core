@@ -25,9 +25,10 @@ defmodule Interface.Live.Home do
           {"Get server status", "/status"},
           {"Set notify", "/notify, 1"},
           {"Load sonicpi synth directory",
-           "/d_loadDir, /Users/abdelaz3r/Documents/dev/sonic-pi/etc/synthdefs/compiled/"},
-          {"Load test synth", "/d_load, /Users/abdelaz3r/Documents/dev/test.scsyndef"},
-          {"Create test synth", "/s_new, tutorial-SinOsc-stereo, 100, 1, 0"},
+           "/d_loadDir, /Users/abdelaz3r/Documents/dev/music/sonic-pi/etc/synthdefs/compiled/"},
+          # Ref: "/s_new, name, ID, action, target_action, args1, value1, ..."
+          # Ref: "/s_new, sonic-pi-prophet, 100, 1, 0, note, 60, amp, 0.5"
+          {"Create test synth", "/s_new, sonic-pi-prophet, 100, 1, 0"},
           {"Free test synth", "/n_free, 100"},
           {"Quit server", "/quit"}
         ]
@@ -206,9 +207,16 @@ defmodule Interface.Live.Home do
       |> Enum.map(fn part ->
         part = String.trim(part)
 
-        case Integer.parse(part) do
-          {integer, rest} when rest == "" -> integer
-          _ -> part
+        if String.contains?(part, ".") do
+          case Float.parse(part) do
+            {float, ""} -> float
+            _ -> part
+          end
+        else
+          case Integer.parse(part, 10) do
+            {integer, ""} -> integer
+            _ -> part
+          end
         end
       end)
 

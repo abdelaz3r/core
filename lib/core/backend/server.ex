@@ -24,7 +24,8 @@ defmodule Core.Backend.Server do
           logger: String.t()
         }
 
-  @spec start_link(any()) :: :ignore | {:error, any} | {:ok, pid}
+  @spec start_link() :: :ignore | {:error, any()} | {:ok, pid()}
+  @spec start_link(any()) :: :ignore | {:error, any()} | {:ok, pid()}
   def start_link(arg \\ nil) do
     GenServer.start_link(Server, arg, name: BackendServer)
   end
